@@ -21,6 +21,24 @@ API client, thin platform entry points and player engines.
 > existing Go server, the Svelte web SPA, the Svelte admin, or the Flutter
 > Moonfin fork. It is a new client that speaks the same HTTP APIs.
 
+## Download
+
+Prebuilt binaries are attached to [GitHub Releases](https://github.com/Wrecht-Dev/starhold-native/releases):
+
+| Platform | Asset |
+|---|---|
+| Android phone/tablet + Android TV | `Starhold-<version>.apk` |
+| Google Play upload | `Starhold-<version>.aab` |
+| Debian/Ubuntu | `starhold_<version>_amd64.deb` |
+| Fedora/RHEL | `starhold-<version>-1.x86_64.rpm` |
+| macOS | `Starhold-<version>.dmg` |
+| Windows | `Starhold-<version>.msi` |
+| iOS Simulator (unsigned) | `Starhold-<version>-ios-simulator.zip` |
+
+The APK is universal (one file for phones, tablets and TV) and unsigned unless
+Android signing secrets are configured. iOS device/IPA builds require your own
+Apple team; see [`docs/GITHUB-RELEASES.md`](docs/GITHUB-RELEASES.md).
+
 ## What works
 
 A native reimplementation of the web client's flow, against the same endpoints:
@@ -113,6 +131,8 @@ media URLs carry the same header rather than a token query parameter. See
 - `:composeApp:assembleDebug` — APK built.
 - `:composeApp:compileKotlinDesktop`, `packageRpm`, headless smoke launch under
   Xvfb (`.deb` needs dpkg, absent on this Fedora host).
+- GitHub Actions release run: Android APK/AAB, deb, rpm, dmg, msi and the
+  unsigned iOS simulator app all build on hosted runners.
 - Not executed: iOS link/run (no macOS), MSI (no Windows), real playback against
   a live server (no credentials), physical TV/phone device testing.
 

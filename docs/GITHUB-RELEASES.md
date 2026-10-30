@@ -67,6 +67,13 @@ export STARHOLD_KEY_PASSWORD=…
   Archive. The job is `continue-on-error` so a simulator-only failure does not
   block the other platform releases.
 
+## Assets on a release
+
+`Starhold-<version>.apk`, `Starhold-<version>.aab`,
+`starhold_<version>_amd64.deb`, `starhold-<version>-1.x86_64.rpm`,
+`Starhold-<version>.dmg`, `Starhold-<version>.msi`,
+`Starhold-<version>-ios-simulator.zip`.
+
 ## Versioning
 
 `-PstarholdVersion=<tag>` (leading `v` stripped) feeds Android `versionName`,
