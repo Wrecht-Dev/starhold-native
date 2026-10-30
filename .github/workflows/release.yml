@@ -45,15 +45,26 @@ jobs:
 
       - name: Build release APK and AAB
         run: >-
-          ./gradlew :composeApp:assembleRelease :composeApp:bundleRelease
+          ./gradlew :composeApp:assembleDebug :composeApp:assembleRelease :composeApp:bundleRelease
           -PstarholdVersion="$VERSION" -PstarholdVersionCode="${GITHUB_RUN_NUMBER}"
           --console=plain
 
       - name: Collect artifacts
         run: |
           mkdir -p dist
-          cp composeApp/build/outputs/apk/release/*.apk "dist/Starhold-${VERSION#v}.apk"
-          cp composeApp/build/outputs/bundle/release/*.aab "dist/Starhold-${VERSION#v}.aab"
+          V="${VERSION#v}"
+          if [ -n "${STARHOLD_KEYSTORE_PATH:-}" ]; then
+            cp composeApp/build/outputs/apk/release/*.apk "dist/Starhold-$V.apk"
+            cp composeApp/build/outputs/bundle/release/*.aab "dist/Starhold-$V.aab"
+            echo "Signed APK/AAB (release keystore configured)."
+          else
+            # No signing secrets: publish the debug-signed APK so the asset is
+            # still installable, plus the unsigned release build for later signing.
+            cp composeApp/build/outputs/apk/debug/*.apk "dist/Starhold-$V.apk"
+            cp composeApp/build/outputs/apk/release/*.apk "dist/Starhold-$V-release-unsigned.apk"
+            cp composeApp/build/outputs/bundle/release/*.aab "dist/Starhold-$V-unsigned.aab"
+            echo "WARNING: no Android keystore secrets; shipping debug-signed APK + unsigned release."
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
