@@ -1,5 +1,8 @@
 # Starhold Native
 
+[![CI](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/ci.yml/badge.svg)](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/ci.yml)
+[![Release](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/release.yml/badge.svg)](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/release.yml)
+
 Native client applications for **Starhold**, the self-hosted media server in
 `Wrecht-Dev/starhold` (locally at `/home/mithral/wyrmhoard`). Built with
 **Kotlin Multiplatform + Compose Multiplatform**: one shared UI and one shared
@@ -47,6 +50,9 @@ A native reimplementation of the web client's flow, against the same endpoints:
   playback, TOTP MFA, recovery codes, app passwords, companion devices,
   error-reporting toggle, sign-out/revoke.
 - **Android TV** — leanback launcher, generated 320×180 banner, larger targets.
+
+Released builds are produced by GitHub Actions on `v*` tags — see
+[`docs/GITHUB-RELEASES.md`](docs/GITHUB-RELEASES.md).
 
 The honest gap list lives in [`docs/06-PARITY-MATRIX.md`](docs/06-PARITY-MATRIX.md).
 Main known omissions: downloads, full EPG time grid, A–Z index, music tabs and

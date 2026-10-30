@@ -1,6 +1,18 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
 
+// Release versioning: CI passes -PstarholdVersion=<tag without v> and
+// -PstarholdVersionCode=<run number>. Local builds fall back to these defaults.
+// Native installers (Dmg/Msi) require MAJOR > 0, so release tags start at
+// v1.0.0 rather than v0.x.
+val starholdVersionName: String =
+    (findProperty("starholdVersion") as String?)?.removePrefix("v")?.ifBlank { null } ?: "1.0.0"
+val starholdVersionCode: Int =
+    (findProperty("starholdVersionCode") as String?)?.toIntOrNull() ?: 1
+// jpackage accepts only numeric versions (no -rc.1 suffix).
+val desktopPackageVersion: String =
+    starholdVersionName.substringBefore('-').ifBlank { "1.0.0" }
+
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
     alias(libs.plugins.androidApplication)
@@ -68,8 +80,8 @@ android {
         applicationId = "dev.starhold.app"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = starholdVersionCode
+        versionName = starholdVersionName
     }
 
     compileOptions {
@@ -86,6 +98,28 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+
+    // Release signing is optional: CI decodes a keystore into
+    // STARHOLD_KEYSTORE_PATH. Without these variables `assembleRelease`
+    // produces an unsigned APK/AAB, which is still useful for testing.
+    signingConfigs {
+        val keystore = System.getenv("STARHOLD_KEYSTORE_PATH")
+        if (!keystore.isNullOrBlank() && file(keystore).exists()) {
+            create("release") {
+                storeFile = file(keystore)
+                storePassword = System.getenv("STARHOLD_KEYSTORE_PASSWORD")
+                keyAlias = System.getenv("STARHOLD_KEY_ALIAS")
+                keyPassword = System.getenv("STARHOLD_KEY_PASSWORD")
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("release") {
+            isMinifyEnabled = false
+            signingConfig = signingConfigs.findByName("release")
+        }
+    }
 }
 
 compose.resources {
@@ -100,7 +134,7 @@ compose.desktop {
         nativeDistributions {
             targetFormats(TargetFormat.Dmg, TargetFormat.Msi, TargetFormat.Deb, TargetFormat.Rpm)
             packageName = "Starhold"
-            packageVersion = "1.0.0"
+            packageVersion = desktopPackageVersion
             description = "Starhold native client"
             vendor = "Starhold"
             linux {
