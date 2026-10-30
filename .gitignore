@@ -1,0 +1,35 @@
+# Gradle / Kotlin
+.gradle/
+build/
+**/build/
+!gradle/wrapper/gradle-wrapper.jar
+local.properties
+.kotlin/
+.konan/
+
+# IDE
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Desktop packaging output
+composeApp/releases/
+composeApp/build/compose/
+
+# iOS / Xcode
+iosApp/Pods/
+iosApp/*.xcworkspace/xcuserdata/
+iosApp/**/xcuserdata/
+*.hmap
+*.ipa
+*.dSYM.zip
+
+# Logs and local data
+*.log
+data/

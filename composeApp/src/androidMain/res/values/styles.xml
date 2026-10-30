@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.Starhold" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">#101010</item>
+        <item name="android:statusBarColor">#101010</item>
+        <item name="android:navigationBarColor">#101010</item>
+        <item name="android:colorAccent">#6A6CF0</item>
+    </style>
+</resources>
