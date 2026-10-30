@@ -33,3 +33,8 @@ iosApp/**/xcuserdata/
 # Logs and local data
 *.log
 data/
+
+# Signing material (never commit)
+*.keystore
+*.jks
+release-credentials.txt
