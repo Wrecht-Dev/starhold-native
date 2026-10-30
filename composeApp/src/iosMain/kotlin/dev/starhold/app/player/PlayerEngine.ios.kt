@@ -4,7 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.viewinterop.UIKitView
+import androidx.compose.ui.viewinterop.UIKitViewController
 import dev.starhold.core.model.ClientCapabilities
 import dev.starhold.core.network.MediaRequest
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -13,25 +13,12 @@ import platform.AVFoundation.AVLayerVideoGravityResizeAspect
 import platform.AVFoundation.AVPlayer
 import platform.AVFoundation.AVPlayerItem
 import platform.AVFoundation.AVPlayerItemDidPlayToEndTimeNotification
-import platform.AVFoundation.AVPlayerLayer
-import platform.AVFoundation.AVPlayerTimeControlStatusPlaying
 import platform.AVFoundation.AVURLAsset
-import platform.AVFoundation.currentItem
-import platform.AVFoundation.currentTime
-import platform.AVFoundation.duration
-import platform.AVFoundation.pause
-import platform.AVFoundation.play
-import platform.AVFoundation.rate
-import platform.AVFoundation.seekToTime
-import platform.AVFoundation.timeControlStatus
-import platform.AVFoundation.volume
+import platform.AVKit.AVPlayerViewController
 import platform.CoreMedia.CMTimeGetSeconds
 import platform.CoreMedia.CMTimeMakeWithSeconds
 import platform.Foundation.NSNotificationCenter
 import platform.Foundation.NSURL
-import platform.QuartzCore.CATransaction
-import platform.QuartzCore.kCATransactionDisableActions
-import platform.UIKit.UIView
 
 actual fun clientCapabilities(): ClientCapabilities = ClientCapabilities(
     containers = listOf("mp4", "mov", "m4v", "ts", "m3u8"),
@@ -43,30 +30,37 @@ actual fun playerEngineName(): String = "AVPlayer (system)"
 
 actual fun drawsInApp(): Boolean = true
 
+/**
+ * AVPlayer backed by AVPlayerViewController. Using the controller's own view
+ * avoids hand-managed AVPlayerLayer frames and keeps PiP/rotation behaviour
+ * consistent with the platform.
+ */
 class IosPlayerEngine : PlayerEngine {
     private val _status = MutableStateFlow(PlaybackStatus())
     override val status: StateFlow<PlaybackStatus> = _status
+
     val player: AVPlayer = AVPlayer()
-    private var observer: Any? = null
+    private var timeObserver: Any? = null
+    private var endObserver: Any? = null
 
     init {
-        observer = player.addPeriodicTimeObserverForInterval(
-            interval = CMTimeMakeWithSeconds(0.4, 600),
-            queue = null,
+        timeObserver = player.addPeriodicTimeObserverForInterval(
+            CMTimeMakeWithSeconds(0.4, 600),
+            null,
         ) { _ ->
             val item = player.currentItem
             val duration = item?.duration?.let { CMTimeGetSeconds(it) } ?: 0.0
             val position = CMTimeGetSeconds(player.currentTime())
             _status.value = _status.value.copy(
                 positionMs = (position * 1000).toLong().coerceAtLeast(0L),
-                durationMs = if (duration.isFinite()) (duration * 1000).toLong() else 0L,
-                playing = player.timeControlStatus == AVPlayerTimeControlStatusPlaying,
+                durationMs = if (duration.isFinite() && duration > 0.0) (duration * 1000).toLong() else 0L,
+                playing = player.rate > 0f,
             )
         }
-        NSNotificationCenter.defaultCenter.addObserverForName(
-            name = AVPlayerItemDidPlayToEndTimeNotification,
-            `object` = null,
-            queue = null,
+        endObserver = NSNotificationCenter.defaultCenter.addObserverForName(
+            AVPlayerItemDidPlayToEndTimeNotification,
+            null,
+            null,
         ) { _ ->
             _status.value = _status.value.copy(ended = true, playing = false)
         }
@@ -82,7 +76,7 @@ class IosPlayerEngine : PlayerEngine {
                 options = mapOf<Any?, Any?>("AVURLAssetHTTPHeaderFieldsKey" to request.headers),
             )
         }
-        player.replaceCurrentItemWithPlayerItem(AVPlayerItem(asset))
+        player.replaceCurrentItemWithPlayerItem(AVPlayerItem(asset = asset))
         _status.value = PlaybackStatus(playing = true)
         if (startMs > 0) {
             player.seekToTime(CMTimeMakeWithSeconds(startMs / 1000.0, 600))
@@ -113,8 +107,10 @@ class IosPlayerEngine : PlayerEngine {
     }
 
     override fun release() {
-        observer?.let { player.removeTimeObserver(it) }
-        observer = null
+        timeObserver?.let { player.removeTimeObserver(it) }
+        timeObserver = null
+        endObserver?.let { NSNotificationCenter.defaultCenter.removeObserver(it) }
+        endObserver = null
         player.pause()
         player.replaceCurrentItemWithPlayerItem(null)
     }
@@ -130,25 +126,17 @@ actual fun rememberPlayerEngine(): PlayerEngine {
 @Composable
 actual fun PlayerSurface(engine: PlayerEngine, modifier: Modifier) {
     val ios = engine as? IosPlayerEngine ?: return
-    val layer = remember {
-        AVPlayerLayer().apply {
-            player = ios.player
-            videoGravity = AVLayerVideoGravityResizeAspect
-            backgroundColor = null
-        }
-    }
-    UIKitView(
+    UIKitViewController(
         factory = {
-            UIView().apply {
-                layer.addSublayer(layer)
+            AVPlayerViewController().apply {
+                player = ios.player
+                showsPlaybackControls = false
+                videoGravity = AVLayerVideoGravityResizeAspect
             }
         },
         modifier = modifier,
-        update = { view ->
-            CATransaction.begin()
-            CATransaction.setValue(true, kCATransactionDisableActions)
-            layer.frame = view.bounds
-            CATransaction.commit()
+        update = { controller ->
+            (controller as? AVPlayerViewController)?.player = ios.player
         },
     )
 }

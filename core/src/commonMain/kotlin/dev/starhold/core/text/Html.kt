@@ -75,8 +75,17 @@ object HtmlToBlocks {
             } else {
                 match.groupValues[2].toIntOrNull(16)
             }
-            code?.takeIf { it in 1..0x10FFFF }?.let { String(Character.toChars(it)) } ?: match.value
+            code?.takeIf { it in 1..0x10FFFF }?.let(::codePointToText) ?: match.value
         }
         return text.replace("&amp;", "&")
+    }
+
+    /** Platform-neutral replacement for JVM-only `Character.toChars`. */
+    private fun codePointToText(code: Int): String {
+        if (code <= 0xFFFF) return code.toChar().toString()
+        val offset = code - 0x10000
+        val high = (0xD800 + (offset shr 10)).toChar()
+        val low = (0xDC00 + (offset and 0x3FF)).toChar()
+        return high.toString() + low
     }
 }
