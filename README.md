@@ -117,6 +117,14 @@ points at `composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`.
 The first screen asks for the server URL (e.g. `https://media.example.com` or
 `http://192.168.1.10:18901`), then username/password, then TOTP if enabled.
 
+## Troubleshooting connectivity
+
+If the address you typed has no scheme the app assumes `http://`. Servers that
+redirect `http://` to `https://` (or to a canonical host) are followed
+automatically, including on the login `POST`; the final origin is remembered.
+If a redirect cannot be followed, the error names the target URL so you can
+paste it into the server field.
+
 ## Server compatibility
 
 Uses the native `/api/v1` surface like the web SPA, plus the Jellyfin endpoints

@@ -35,7 +35,12 @@ private val StarholdJson = Json {
 }
 
 /** Builds the shared HTTP client. Platform engines are picked up from the classpath. */
+private const val MAX_REDIRECTS = 4
+
 fun defaultHttpClient(): HttpClient = HttpClient {
+    // Redirects are resolved in StarholdApi.request so POST bodies (login) are
+    // re-sent instead of degrading to GET.
+    followRedirects = false
     install(ContentNegotiation) { json(StarholdJson) }
     install(HttpTimeout) {
         requestTimeoutMillis = 30_000
@@ -54,7 +59,9 @@ class StarholdApi(
     private val http: HttpClient = defaultHttpClient(),
     private val userAgent: String = "StarholdNative/0.1.0",
 ) {
-    val baseUrl: String = serverUrl.trim().trimEnd('/')
+    /** Server origin; updated when the server redirects to a canonical URL. */
+    var baseUrl: String = serverUrl.trim().trimEnd('/')
+        private set
 
     fun absolute(path: String): String =
         if (path.startsWith("http://") || path.startsWith("https://")) path else baseUrl + path
@@ -80,34 +87,67 @@ class StarholdApi(
         body: String? = null,
         authenticated: Boolean = true,
     ): HttpResponse {
-        val target = url(path, params)
-        val response = try {
-            when (method) {
-                "GET" -> http.get(target) { configure(authenticated) }
-                "POST" -> http.post(target) {
-                    configure(authenticated)
-                    if (body != null) {
-                        contentType(ContentType.Application.Json)
-                        setBody(body)
+        var target = url(path, params)
+        var currentMethod = method
+        var currentBody = body
+        var sendAuth = authenticated
+        var hops = 0
+        while (true) {
+            val response = send(currentMethod, target, currentBody, sendAuth)
+            if (response.status.value in REDIRECT_STATUSES) {
+                val location = response.headers[HttpHeaders.Location]
+                val next = location?.let { resolveRedirect(target, it) }
+                if (next != null && next != target && hops < MAX_REDIRECTS) {
+                    // Drain the redirect body before retrying.
+                    runCatching { response.bodyAsText() }
+                    if (originOf(next) != originOf(target)) {
+                        // Never forward a bearer token to a different origin.
+                        sendAuth = false
                     }
-                }
-                "PUT" -> http.put(target) {
-                    configure(authenticated)
-                    if (body != null) {
-                        contentType(ContentType.Application.Json)
-                        setBody(body)
+                    if (response.status.value == 303) {
+                        currentMethod = "GET"
+                        currentBody = null
                     }
+                    target = next
+                    originOf(next)?.let { if (it != baseUrl) baseUrl = it }
+                    hops++
+                    continue
                 }
-                "DELETE" -> http.delete(target) { configure(authenticated) }
-                else -> error("Unsupported method $method")
             }
-        } catch (e: ApiException) {
-            throw e
-        } catch (e: Throwable) {
-            throw offlineException(e)
+            ensureSuccess(response)
+            return response
         }
-        ensureSuccess(response)
-        return response
+    }
+
+    private suspend fun send(
+        method: String,
+        target: String,
+        body: String?,
+        authenticated: Boolean,
+    ): HttpResponse = try {
+        when (method) {
+            "GET" -> http.get(target) { configure(authenticated) }
+            "POST" -> http.post(target) {
+                configure(authenticated)
+                if (body != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                }
+            }
+            "PUT" -> http.put(target) {
+                configure(authenticated)
+                if (body != null) {
+                    contentType(ContentType.Application.Json)
+                    setBody(body)
+                }
+            }
+            "DELETE" -> http.delete(target) { configure(authenticated) }
+            else -> error("Unsupported method $method")
+        }
+    } catch (e: ApiException) {
+        throw e
+    } catch (e: Throwable) {
+        throw offlineException(e)
     }
 
     private fun HttpRequestBuilder.configure(authenticated: Boolean) {
@@ -138,7 +178,7 @@ class StarholdApi(
         } catch (_: Throwable) {
             // Body was binary or empty; keep the status text.
         }
-        throw ApiException(message, response.status.value, code)
+        throw ApiException(message, response.status.value, code, response.headers[HttpHeaders.Location])
     }
 
     private suspend inline fun <reified T> getJson(

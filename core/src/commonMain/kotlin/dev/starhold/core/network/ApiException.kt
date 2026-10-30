@@ -5,6 +5,8 @@ class ApiException(
     message: String,
     val status: Int = 0,
     val code: String = "",
+    /** `Location` header when the server answered with a redirect. */
+    val location: String? = null,
 ) : Exception(message) {
     val isUnauthorized: Boolean get() = status == 401
     val isNotFound: Boolean get() = status == 404

@@ -7,6 +7,7 @@ import dev.starhold.core.model.Library
 import dev.starhold.core.model.Session
 import dev.starhold.core.model.UiPreferences
 import dev.starhold.core.network.ApiException
+import dev.starhold.core.network.REDIRECT_STATUSES
 import dev.starhold.core.network.StarholdApi
 import dev.starhold.core.store.SessionStore
 import dev.starhold.core.store.normalizeServerUrl
@@ -58,6 +59,15 @@ class AppState(
         api = serverUrl?.let { url -> StarholdApi(url, tokenProvider = { session?.token }) }
     }
 
+    private fun adoptCanonicalUrl(client: StarholdApi) {
+        val canonical = client.baseUrl
+        if (canonical != serverUrl) {
+            serverUrl = canonical
+            store.serverUrl = canonical
+            rebuildApi()
+        }
+    }
+
     suspend fun bootstrap() {
         if (api != null && session != null) {
             runCatching { refreshSession() }.onFailure { error ->
@@ -73,8 +83,10 @@ class AppState(
             ?: throw IllegalArgumentException("Enter a server address such as https://media.example.com")
         val probe = StarholdApi(url, tokenProvider = { null })
         val health = probe.health()
-        serverUrl = url
-        store.serverUrl = url
+        // The server may have redirected http -> https (or to a canonical host).
+        val canonical = probe.baseUrl
+        serverUrl = canonical
+        store.serverUrl = canonical
         serverHealth = health
         rebuildApi()
         health
@@ -88,6 +100,7 @@ class AppState(
                 val created = client.login(username, password, mfaCode)
                 session = created
                 store.saveSession(created)
+                adoptCanonicalUrl(client)
                 runCatching { refreshSession() }
                 created
             } finally {
@@ -156,6 +169,14 @@ fun errorText(error: Throwable): String = when (error) {
         error.status == 0 -> "Cannot reach the server. Check the address and your network."
         error.status == 403 -> error.message.orEmpty().ifBlank { "You do not have access to that." }
         error.status == 404 -> error.message.orEmpty().ifBlank { "That item no longer exists." }
+        error.status in REDIRECT_STATUSES -> {
+            val target = error.location?.takeIf { it.isNotBlank() }
+            if (target != null) {
+                "The server redirects to $target. Update the server address to that URL."
+            } else {
+                "The server redirected the request (HTTP ${error.status}). Use the final https:// address from your browser."
+            }
+        }
         else -> error.message.orEmpty().ifBlank { "The server returned an error (${error.status})." }
     }
     else -> error.message?.takeIf { it.isNotBlank() } ?: "Something went wrong."
