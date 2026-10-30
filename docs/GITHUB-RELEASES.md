@@ -32,7 +32,7 @@ them the job still produces an unsigned APK/AAB for manual testing:
 | `ANDROID_KEYSTORE_BASE64` | `base64 -w0 release.keystore` |
 | `ANDROID_KEYSTORE_PASSWORD` | keystore password |
 | `ANDROID_KEY_ALIAS` | key alias |
-| `ANDROID_KEY_PASSWORD` | key password |
+| `ANDROID_KEY_PASSWORD` | key password (PKCS12: same as the store password) |
 
 Create them with:
 
@@ -42,6 +42,13 @@ gh secret set ANDROID_KEYSTORE_PASSWORD
 gh secret set ANDROID_KEY_ALIAS
 gh secret set ANDROID_KEY_PASSWORD
 ```
+
+PKCS12 keystores ignore a distinct key password, so set
+`ANDROID_KEY_PASSWORD` equal to `ANDROID_KEYSTORE_PASSWORD`; otherwise the
+build fails with "Given final block not properly padded".
+
+Back up the keystore and both passwords somewhere safe: Android only allows
+in-place upgrades when every release is signed with the same key.
 
 Local signed build:
 

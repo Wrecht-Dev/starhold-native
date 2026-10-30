@@ -35,8 +35,8 @@ Prebuilt binaries are attached to [GitHub Releases](https://github.com/Wrecht-De
 | Windows | `Starhold-<version>.msi` |
 | iOS Simulator (unsigned) | `Starhold-<version>-ios-simulator.zip` |
 
-The APK is universal (one file for phones, tablets and TV) and unsigned unless
-Android signing secrets are configured. iOS device/IPA builds require your own
+The APK is universal (one file for phones, tablets and TV) and signed with this
+repository's release key, so releases install over each other. iOS device/IPA builds require your own
 Apple team; see [`docs/GITHUB-RELEASES.md`](docs/GITHUB-RELEASES.md).
 
 ## What works
