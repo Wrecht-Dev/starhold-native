@@ -183,8 +183,15 @@ jobs:
 
   publish:
     name: Publish GitHub Release
-    needs: [android, linux, macos, windows]
-    if: startsWith(github.ref, 'refs/tags/v')
+    needs: [android, linux, macos, windows, ios]
+    # iOS is allow-failure: wait for it, but still publish the other platforms
+    # when the simulator build breaks.
+    if: >-
+      always() && startsWith(github.ref, 'refs/tags/v') &&
+      needs.android.result == 'success' &&
+      needs.linux.result == 'success' &&
+      needs.macos.result == 'success' &&
+      needs.windows.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
