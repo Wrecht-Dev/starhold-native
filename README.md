@@ -117,6 +117,14 @@ points at `composeApp/build/xcode-frameworks/$(CONFIGURATION)/$(SDK_NAME)`.
 The first screen asks for the server URL (e.g. `https://media.example.com` or
 `http://192.168.1.10:18901`), then username/password, then TOTP if enabled.
 
+## Layout
+
+Phones and phone-sized windows use a bottom navigation bar with icon + label
+tabs; tablets, desktop and TV honour the navigation position chosen in
+Settings. All screens respect system insets (status bar, notch, gesture bar),
+so nothing hides under the OS chrome. The video player is deliberately
+edge-to-edge.
+
 ## Troubleshooting connectivity
 
 If the address you typed has no scheme the app assumes `http://`. Servers that

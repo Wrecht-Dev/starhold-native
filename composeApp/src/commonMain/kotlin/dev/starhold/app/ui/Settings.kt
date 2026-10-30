@@ -201,6 +201,12 @@ fun SettingsScreen(app: AppState, nav: Navigator) {
                                 )
                             }
                         }
+                        Spacer(Modifier.height(6.dp))
+                        Text(
+                            "Phones always use the bottom bar; this applies to tablets, desktop and TV.",
+                            style = starholdType.caption,
+                            color = colors.faint,
+                        )
                         Spacer(Modifier.height(18.dp))
                         Text("Density", style = starholdType.label, color = colors.muted)
                         Spacer(Modifier.height(8.dp))

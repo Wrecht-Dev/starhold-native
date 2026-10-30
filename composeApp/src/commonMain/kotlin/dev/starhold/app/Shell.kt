@@ -8,13 +8,17 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -33,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.starhold.app.design.AppIcon
 import dev.starhold.app.design.LocalIsTelevision
@@ -79,7 +84,6 @@ private fun destinations(app: AppState): List<Destination> = buildList {
 fun ShellScreen(app: AppState, nav: Navigator) {
     PlatformBackHandler(enabled = nav.canGoBack) { nav.pop() }
     val colors = starholdColors
-    val isTv = LocalIsTelevision.current
     val navPosition = app.preferences.navPosition
     val dests = destinations(app)
     val scope = rememberCoroutineScope()
@@ -92,31 +96,37 @@ fun ShellScreen(app: AppState, nav: Navigator) {
         }
     }
 
-    BoxWithConstraints(Modifier.fillMaxSize().background(colors.bg)) {
-        val compact = maxWidth < 760.dp
+    // The player is edge-to-edge; every other screen stays clear of system bars.
+    val fullscreenPlayer = nav.current is Screen.Watch
+    BoxWithConstraints(
+        Modifier
+            .fillMaxSize()
+            .background(colors.bg)
+            .then(
+                if (fullscreenPlayer) Modifier
+                else Modifier.windowInsetsPadding(WindowInsets.safeDrawing),
+            ),
+    ) {
+        // Phones (including landscape) always get the bottom bar: a top bar is
+        // awkward to reach and disappears under the status bar with edge-to-edge.
+        val compact = maxWidth < 760.dp || maxHeight < 520.dp
+        val effectiveNavPosition = if (compact) "bottom" else navPosition
         val content: @Composable () -> Unit = {
             Box(Modifier.fillMaxSize()) {
                 ScreenContent(app, nav)
             }
         }
-        when (navPosition) {
+        when (effectiveNavPosition) {
             "bottom" -> Column(Modifier.fillMaxSize()) {
                 Box(Modifier.weight(1f)) { content() }
-                TopNavigation(
-                    app = app,
-                    nav = nav,
-                    destinations = dests,
-                    compact = compact,
-                    onOpen = ::open,
-                    bottom = true,
-                )
+                BottomNavigation(app, nav, dests, onOpen = ::open)
             }
             "left", "right" -> Row(Modifier.fillMaxSize()) {
-                if (navPosition == "left") {
+                if (effectiveNavPosition == "left") {
                     SideNavigation(app, nav, dests, compact = compact, onOpen = ::open)
                 }
                 Box(Modifier.weight(1f)) { content() }
-                if (navPosition == "right") {
+                if (effectiveNavPosition == "right") {
                     SideNavigation(app, nav, dests, compact = compact, onOpen = ::open)
                 }
             }
@@ -289,6 +299,84 @@ private fun TopActions(app: AppState, nav: Navigator, compact: Boolean) {
                 color = colors.text,
                 fontWeight = FontWeight.Bold,
             )
+        }
+    }
+}
+
+@Composable
+private fun BottomNavigation(
+    app: AppState,
+    nav: Navigator,
+    destinations: List<Destination>,
+    onOpen: (Screen) -> Unit,
+) {
+    val colors = starholdColors
+    val selected = nav.current
+    Column(Modifier.fillMaxWidth().background(colors.surface)) {
+        Box(Modifier.fillMaxWidth().height(1.dp).background(colors.line))
+        Row(
+            modifier = Modifier.fillMaxWidth().height(64.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            LazyRow(
+                modifier = Modifier.weight(1f),
+                contentPadding = PaddingValues(horizontal = 6.dp),
+                horizontalArrangement = Arrangement.spacedBy(2.dp),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                items(destinations) { destination ->
+                    val isSelected = isSameSection(selected, destination.screen)
+                    Column(
+                        modifier = Modifier
+                            .width(74.dp)
+                            .clip(RoundedCornerShape(10.dp))
+                            .background(if (isSelected) colors.surface2 else Color.Transparent)
+                            .clickable { onOpen(destination.screen) }
+                            .padding(vertical = 6.dp),
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                    ) {
+                        AppIcon(
+                            destination.icon,
+                            size = 21.dp,
+                            tint = if (isSelected) colors.accent else colors.muted,
+                        )
+                        Spacer(Modifier.height(3.dp))
+                        Text(
+                            destination.label,
+                            style = starholdType.caption,
+                            color = if (isSelected) colors.text else colors.muted,
+                            fontWeight = if (isSelected) FontWeight.SemiBold else FontWeight.Medium,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                dev.starhold.app.ui.IconButton(
+                    AppIcon.Search,
+                    onClick = { nav.push(Screen.Search("")) },
+                    contentDescription = "Search",
+                    tint = colors.muted,
+                )
+                Box(
+                    modifier = Modifier
+                        .size(34.dp)
+                        .clip(CircleShape)
+                        .background(colors.surface2)
+                        .border(1.dp, colors.lineStrong, CircleShape)
+                        .clickable { nav.push(Screen.Settings) },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        app.session?.username?.take(1)?.uppercase() ?: "?",
+                        style = starholdType.caption,
+                        color = colors.text,
+                        fontWeight = FontWeight.Bold,
+                    )
+                }
+                Spacer(Modifier.width(12.dp))
+            }
         }
     }
 }
