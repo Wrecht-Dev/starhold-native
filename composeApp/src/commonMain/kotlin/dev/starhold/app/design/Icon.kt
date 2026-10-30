@@ -17,6 +17,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.withTransform
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.PI
 import kotlin.math.abs
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -336,7 +337,7 @@ internal class SvgPathParser(private val data: String) {
             currentX = x2; currentY = y2
             return
         }
-        val phi = rotationDeg * (Math.PI / 180.0)
+        val phi = rotationDeg * (PI / 180.0)
         val cosPhi = cos(phi).toFloat()
         val sinPhi = sin(phi).toFloat()
         val dx = (currentX - x2) / 2f
@@ -362,13 +363,13 @@ internal class SvgPathParser(private val data: String) {
         val endVectorY = (-y1p - cyp) / ry
         var startAngle = atan2(startVectorY, startVectorX)
         var extent = atan2(endVectorX * startVectorY - endVectorY * startVectorX, endVectorX * startVectorX + endVectorY * startVectorY)
-        if (!sweep && extent > 0) extent -= (2 * Math.PI).toFloat()
-        if (sweep && extent < 0) extent += (2 * Math.PI).toFloat()
+        if (!sweep && extent > 0) extent -= (2 * PI).toFloat()
+        if (sweep && extent < 0) extent += (2 * PI).toFloat()
         val rect = Rect(cx - rx, cy - ry, cx + rx, cy + ry)
         path.arcTo(
             rect,
-            startAngle * (180f / Math.PI).toFloat(),
-            extent * (180f / Math.PI).toFloat(),
+            startAngle * (180f / PI).toFloat(),
+            extent * (180f / PI).toFloat(),
             forceMoveTo = false,
         )
         currentX = x2; currentY = y2

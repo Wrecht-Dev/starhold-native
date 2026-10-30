@@ -1,3 +1,5 @@
+@file:OptIn(ExperimentalTime::class)
+
 package dev.starhold.app.ui
 
 import androidx.compose.foundation.background
@@ -44,8 +46,9 @@ import dev.starhold.app.errorText
 import dev.starhold.core.model.LiveChannel
 import dev.starhold.core.model.LiveProgramme
 import kotlinx.coroutines.launch
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 

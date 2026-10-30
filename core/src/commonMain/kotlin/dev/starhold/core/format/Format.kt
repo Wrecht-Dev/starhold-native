@@ -1,7 +1,10 @@
+@file:OptIn(ExperimentalTime::class)
+
 package dev.starhold.core.format
 
-import kotlinx.datetime.Clock
-import kotlinx.datetime.Instant
+import kotlin.time.Clock
+import kotlin.time.ExperimentalTime
+import kotlin.time.Instant
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.toLocalDateTime
 import kotlin.math.max
@@ -74,9 +77,9 @@ fun subtitleFor(
 }
 
 /** Relative time for history rows, tolerant of absent/invalid timestamps. */
-fun relativeTime(iso: String, now: Instant = Clock.System.now()): String {
+fun relativeTime(iso: String, nowEpochSeconds: Long = Clock.System.now().epochSeconds): String {
     val instant = runCatching { Instant.parse(iso) }.getOrNull() ?: return ""
-    val minutes = (now - instant).inWholeMinutes
+    val minutes = ((nowEpochSeconds - instant.epochSeconds) / 60).toInt()
     return when {
         minutes < 1 -> "just now"
         minutes < 60 -> "${minutes}m ago"
@@ -87,8 +90,8 @@ fun relativeTime(iso: String, now: Instant = Clock.System.now()): String {
 }
 
 /** "Ends at 21:40" for a resume-aware detail page. */
-fun endsAt(now: Instant, remainingSeconds: Int, zone: TimeZone = TimeZone.currentSystemDefault()): String {
-    val end = Instant.fromEpochSeconds(now.epochSeconds + remainingSeconds)
+fun endsAt(nowEpochSeconds: Long, remainingSeconds: Int, zone: TimeZone = TimeZone.currentSystemDefault()): String {
+    val end = Instant.fromEpochSeconds(nowEpochSeconds + remainingSeconds)
     val local = end.toLocalDateTime(zone)
     val hour = local.hour.toString().padStart(2, '0')
     val minute = local.minute.toString().padStart(2, '0')
