@@ -1,6 +1,10 @@
 package dev.starhold.app
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
@@ -35,10 +39,13 @@ fun StarholdApp(store: KeyValueStore) {
     StarholdTheme(preferences = app.preferences) {
         CompositionLocalProvider(LocalIsTelevision provides television) {
             Surface(Modifier.fillMaxSize(), color = starholdColors.bg) {
+                // Setup and sign-in are not inside the shell; keep their fields
+                // clear of the status bar, notch and keyboard.
+                val authModifier = Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing)
                 when {
                     app.booting -> SplashScreen()
-                    app.serverUrl == null -> ServerSetupScreen(app)
-                    app.session == null -> AuthFlow(app) { navigator.reset(Screen.Home) }
+                    app.serverUrl == null -> Box(authModifier) { ServerSetupScreen(app) }
+                    app.session == null -> Box(authModifier) { AuthFlow(app) { navigator.reset(Screen.Home) } }
                     else -> ShellScreen(app, navigator)
                 }
             }
