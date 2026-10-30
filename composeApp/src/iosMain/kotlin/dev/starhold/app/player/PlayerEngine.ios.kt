@@ -1,6 +1,6 @@
-package dev.starhold.app.player
-
 @file:OptIn(kotlinx.cinterop.ExperimentalForeignApi::class)
+
+package dev.starhold.app.player
 
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
