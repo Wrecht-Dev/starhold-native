@@ -40,7 +40,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import dev.starhold.app.design.AppIcon
-import dev.starhold.app.design.LocalIsTelevision
 import dev.starhold.app.design.Tokens
 import dev.starhold.app.design.starholdColors
 import dev.starhold.app.design.starholdType
