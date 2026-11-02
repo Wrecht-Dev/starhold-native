@@ -4,7 +4,7 @@
 [![Release](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/release.yml/badge.svg)](https://github.com/Wrecht-Dev/starhold-native/actions/workflows/release.yml)
 
 Native client applications for **Starhold**, the self-hosted media server in
-`Wrecht-Dev/starhold` (locally at `/home/mithral/wyrmhoard`). Built with
+`Wrecht-Dev/starhold`. Built with
 **Kotlin Multiplatform + Compose Multiplatform**: one shared UI and one shared
 API client, thin platform entry points and player engines.
 
@@ -94,7 +94,7 @@ starhold-native/
 
 ## Build
 
-Requirements: JDK 21 (this machine: `~/.jdks/temurin-21`), Android SDK with
+Requirements: JDK 21, Android SDK with
 platform 36 for Android builds; macOS + Xcode 16 for iOS; Windows + WiX for MSI.
 
 ```bash
